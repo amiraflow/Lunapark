@@ -1,0 +1,375 @@
+\chapter{Programski kôd}
+
+Programski kôd korišten za rad sistema dan je u nastavku.
+\begin{lstlisting}[frame=single,language=C++,numbers=left, numberstyle=\tiny, xleftmargin=0.05\textwidth, xrightmargin=0.05\textwidth, basicstyle=\ttfamily\footnotesize]
+#include <Servo.h>
+#include "SD.h"
+#define SD_ChipSelectPin 53
+#include "TMRpcm.h"
+#include "SPI.h"
+
+// SD kartica
+TMRpcm tmrpcm;
+// Senzor za boju
+#define S0 2
+#define S1 3
+#define S2 4
+#define S3 5
+#define sensorOut 6
+const int crveniButton = 28;    
+const int plaviButton = 26; 
+Servo gornjiServo;
+Servo donjiServo;
+
+// svjetla
+const int crvenaDioda = 29; 
+const int zelenaDioda = 30; 
+
+const int dioda1 = 32; 
+const int dioda2 = 31; 
+const int dioda3 = 33;
+const int dioda4 = 34;
+const int svjetla = 36;
+
+// aplikacija
+long int data;
+
+// motori
+#define enA 10
+int motor1pin1 = 40;
+int motor1pin2 = 41;
+
+int motor2pin1 = 42;
+int motor2pin2 = 43;
+
+int motor3pin1 = 44;
+int motor3pin2 = 45;
+
+int motor4pin1 = 46;
+int motor4pin2 = 47;
+
+// vracara
+int crveni_pin= 11;
+int zeleni_pin = 12;
+int plavi_pin = 13;
+
+// senzor za boju
+int frekvencija = 0;
+int color = 0;
+int crveniButtonState = 0;    
+int plaviButtonState = 0; 
+// citanje buttona
+
+void setup(){
+// pokretanje SD kartice
+tmrpcm.speakerPin = 46;
+Serial.begin(9600);
+if(!SD.begin(SD_ChipSelectPin)){
+  Serial.println("SD fail");
+  return;
+}
+tmrpcm.setVolume(6);
+    
+//bluetooth pokretanje na serijskom portu 1
+Serial1.begin(9600);
+
+// senzor za boju
+pinMode(crveniButton, INPUT);
+pinMode(plaviButton, INPUT);
+pinMode(zutiButton, INPUT);
+pinMode(S0, OUTPUT);
+pinMode(S1, OUTPUT);
+pinMode(S2, OUTPUT);
+pinMode(S3, OUTPUT);
+pinMode(sensorOut, INPUT);
+
+// skaliranje
+digitalWrite(S0, HIGH);
+digitalWrite(S1, LOW);
+
+gornjiServo.attach(22);
+donjiServo.attach(24);
+
+// motori
+ pinMode(motor1pin1, OUTPUT);
+ pinMode(motor1pin2, OUTPUT);
+ pinMode(motor2pin1, OUTPUT);
+ pinMode(motor2pin2, OUTPUT);
+ pinMode(motor3pin1, OUTPUT);
+ pinMode(motor3pin2, OUTPUT);
+ pinMode(motor4pin1, OUTPUT);
+ pinMode(motor4pin2, OUTPUT);
+
+// vracara
+pinMode(crveni_pin, OUTPUT);
+pinMode(zeleni_pin, OUTPUT);
+pinMode(plavi_pin, OUTPUT);
+ 
+// DIODE
+pinMode(zelenaDioda, OUTPUT);
+pinMode(crvenaDioda, OUTPUT);
+pinMode(dioda1, OUTPUT);
+pinMode(dioda2, OUTPUT);
+pinMode(dioda3, OUTPUT);
+pinMode(dioda4, OUTPUT);
+pinMode(svjetla, OUTPUT);
+    
+void loop(){
+ 
+while(Serial1.available()==0) ;
+
+donjiServo.write(0);
+if(Serial1.available()>0) {
+data = Serial1.parseInt();
+ 
+} 
+
+delay(400);
+Serial.print(data);
+ 
+if (data == 67){
+  diodePali();
+}
+if (data == 76){
+  diodeGasi();
+}
+if (data == 23){
+  vracara();
+}
+if (data == 32){
+  vracaraUgasi();
+}
+if (data == 56){
+  analogWrite(enA, 160); 
+  digitalWrite(motor4pin1, HIGH);
+  digitalWrite(motor4pin2, LOW);
+}
+if (data == 65){
+  digitalWrite(motor4pin1, LOW);
+  digitalWrite(motor4pin2, LOW);
+}
+if (data == 34){
+  digitalWrite(motor1pin1, LOW);
+  digitalWrite(motor1pin2, HIGH);
+}
+if (data == 43){
+  digitalWrite(motor1pin1, LOW);
+  digitalWrite(motor1pin2, LOW);
+}
+if (data == 11){ 
+  digitalWrite(motor3pin1, HIGH);
+  digitalWrite(motor3pin2, LOW);
+  digitalWrite(motor2pin1, LOW);
+  digitalWrite(motor2pin2, HIGH);
+}
+if (data == 21){
+  digitalWrite(motor3pin1, LOW);
+  digitalWrite(motor3pin2, LOW);
+  digitalWrite(motor2pin1, LOW);
+  digitalWrite(motor2pin2, LOW);
+}
+if (data == 91){ 
+   tmrpcm.play("test.wav");
+}
+if (data == 19){
+   tmrpcm.pause();
+}
+if (data == 89){ 
+   crveniButtonState = digitalRead(crveniButton);
+   plaviButtonState = digitalRead(plaviButton);
+
+if (crveniButtonState == HIGH || zutiButtonState == HIGH || plaviButtonState == HIGH) {
+    senzorZaBoje(crveniButtonState, zutiButtonState, plaviButtonState);
+}
+}
+if (data == 98){
+   donjiServo.write(110);
+}
+if (data == 99){ 
+   crveniButtonState = digitalRead(crveniButton);
+   plaviButtonState = digitalRead(plaviButton);
+
+if (crveniButtonState == HIGH || zutiButtonState == HIGH || plaviButtonState == HIGH) {
+    senzorZaBoje(crveniButtonState, zutiButtonState, plaviButtonState);
+}
+ diodePali();
+   digitalWrite(motor1pin1, LOW);
+   digitalWrite(motor1pin2, HIGH);
+  digitalWrite(motor3pin1, HIGH);
+  digitalWrite(motor3pin2, LOW);
+  digitalWrite(motor2pin1, LOW);
+  digitalWrite(motor2pin2, HIGH);
+  analogWrite(enA, 160); 
+  digitalWrite(motor4pin1, HIGH);
+  digitalWrite(motor4pin2, LOW);
+  vracara();
+  tmrpcm.play("test.wav");
+}
+if (data == 88){
+  diodeGasi();
+  donjiServo.write(110);
+  digitalWrite(motor1pin1, LOW);
+  digitalWrite(motor1pin2, LOW);
+  digitalWrite(motor3pin1, LOW);
+  digitalWrite(motor3pin2, LOW);
+  digitalWrite(motor2pin1, LOW);
+  digitalWrite(motor2pin2, LOW);
+  analogWrite(enA, 160); 
+  digitalWrite(motor4pin1, LOW);
+  digitalWrite(motor4pin2, LOW);
+  vracaraUgasi();
+  tmrpcm.pause();
+}
+
+}
+void vracara(){
+  RGB_color(255, 0, 0); // crvena
+  delay(1000);
+  RGB_color(0, 255, 0); // zelena
+  delay(1000);
+  RGB_color(0, 0, 255); // plava
+  delay(1000);
+  RGB_color(255, 255, 125); // roza
+  delay(1000);
+  RGB_color(0, 255, 255); // cijan
+  delay(1000);
+  RGB_color(255, 0, 255); // magenta
+  delay(1000);
+  RGB_color(255, 255, 0); // zuta
+  delay(1000);
+  RGB_color(255, 255, 255); // bijela
+  delay(1000);
+}
+
+
+void RGB_color(int crvena, int zelena, int plava) {
+  analogWrite(crveni_pin, crvena);
+  analogWrite(zeleni_pin, zelena);
+  analogWrite(plavi_pin, plava);
+}
+
+int readColor() {
+// Citanje crvenih fotodioda
+  digitalWrite(S2, LOW);
+  digitalWrite(S3, LOW);
+  frekvencija = pulseIn(sensorOut, LOW);
+  int R = frekvencija;
+    delay(50);
+
+// Citanje zelenih fotodioda
+  digitalWrite(S2, HIGH);
+  digitalWrite(S3, HIGH);
+  frekvencija = pulseIn(sensorOut, LOW);
+  int G = frekvencija;
+  delay(50);
+  
+// Citanje plavih
+  digitalWrite(S2, LOW);
+  digitalWrite(S3, HIGH);
+  frekvencija = pulseIn(sensorOut, LOW);
+  int B = frekvencja;
+  delay(50);
+
+  if((R<45 & R>32 & G<70 & G>50) || (R>70 & G<10 & B <50 & B>30) ){
+    color = 1; // Crvena
+  }
+  if(R<45 & R>35 & B<40 &B>30){
+    color = 2; // Roza
+  }
+  if(R<63 & R>50 & G<55 & G>45 & B<40 & B>29){
+    color = 3; // Plava
+  }
+  if(R<40 & R>30 & G<50 & G>40 & B<46 & B>38){
+    color = 4; // Zuta
+  }
+  return color;  
+}
+
+void senzorZaBoje(){
+   crveniButtonState = digitalRead(crveniButton);
+   plaviButtonState = digitalRead(plaviButton);
+
+// Ako je pritisnut jedan od buttona, pokrese se dio programa. Ako korisnik pritisne odgovarajuci button, te pogodi koje je boje loptica, on pobijedi, pali se zelena dioda, u suprotnom, pali se crvena.
+  if (crveniButtonState == HIGH || plaviButtonState == HIGH) {
+  gornjiServo.write(120);
+  delay(3000);
+  
+  for(int i = 115; i > 55; i--) {
+    gornjiServo.write(i);
+    delay(2);
+  }
+  delay(1000);
+  
+  color = readColor();
+  color = readColor();
+  color = readColor();
+  color = readColor();
+  
+  delay(1000);  
+   switch (color) {
+    case 1: //crvena
+    if (crveniButtonState == HIGH){
+      digitalWrite(zelenaDioda, HIGH);
+      digitalWrite(crvenaDioda, LOW);
+    }
+    if (plaviButtonState == HIGH ){
+      digitalWrite(crvenaDioda, HIGH);
+      digitalWrite(zelenaDioda, LOW);
+    }
+    donjiServo.write(50);
+    break;
+    case 2: //roza
+    digitalWrite(crvenaDioda, HIGH);
+    digitalWrite(zelenaDioda, LOW);
+    donjiServo.write(75);
+    break;
+    case 3: // zuta
+      digitalWrite(crvenaDioda, HIGH);
+      digitalWrite(zelenaDioda, LOW);
+    donjiServo.write(100);
+    break;
+    case 4: // plava
+     if (plaviButtonState == HIGH){
+    digitalWrite(zelenaDioda, HIGH);
+    digitalWrite(crvenaDioda, LOW);
+    }
+    if (crveniButtonState == HIGH ){
+    digitalWrite(crvenaDioda, HIGH);
+    digitalWrite(zelenaDioda, LOW);
+    }
+    donjiServo.write(125);
+    break;  
+    case 0:
+    break;
+  }
+  delay(300);
+  
+  for(int i = 55; i > 20; i--) {
+    gornjiServo.write(i);
+    delay(2);
+  } 
+  delay(500);
+  
+  for(int i = 29; i < 115; i++) {
+    gornjiServo.write(i);
+    delay(2);
+  }
+  color=0;
+  }
+}
+
+void vrtiMotore(){
+  digitalWrite(motor1pin1, HIGH);
+  digitalWrite(motor1pin2, LOW);
+
+  digitalWrite(motor2pin1, HIGH);
+  digitalWrite(motor2pin2, LOW);
+
+  digitalWrite(motor3pin1, HIGH);
+  digitalWrite(motor3pin2, LOW);
+  
+    analogWrite(enA, 160);  // upravljanje brzinom
+  digitalWrite(motor4pin1, HIGH);
+  digitalWrite(motor4pin2, LOW);
+}
+ \end{lstlisting}
